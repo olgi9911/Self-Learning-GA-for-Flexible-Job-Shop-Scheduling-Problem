@@ -4,8 +4,13 @@ import random
 from agent import Agent
 
 class SLGAEnv:
-    def __init__(self, dimension, population_size, num_generations, pc = 0.7, pm = 0.01, num_states=20, num_actions=10):
-        self.dimension = dimension
+    def __init__(self, table_pd, num_jobs, num_machines, dimension, population_size, num_generations, pc = 0.7, pm = 0.01, num_states=20, num_actions=10):
+        self.table_pd = table_pd
+        self.num_jobs = num_jobs
+        self.num_machines = num_machines
+
+        # the length of operation sequence or machine assignment, total length of an individual is 2 * dimension
+        self.dimension = dimension 
         self.population_size = population_size
         self.num_generations = num_generations
         self.pc = pc
@@ -98,16 +103,141 @@ class SLGAEnv:
             self.fitness_score = self.fitness()
 
     def init_population(self):
-        None
+        # Operation sequence
+        operation_sequence = np.zeros((self.population_size, self.dimension))
+        # count the number of identical elements in the clolumn 'job'
+        operation_counts = self.table_pd['job'].value_counts()
+        # probability to Choose the job that has the greatest number of operations remaining
+        p_cmo = 0.8
+        # the next operation in a sequnece is choosen either by the priority rule or randomly
+        for i in range(self.population_size):
+            operation_counts_tmp = operation_counts.deepcopy()
+            for j in range(self.dimension):
+                if np.random.rand() < p_cmo:
+                    job = operation_counts_tmp.idxmax()
+                    operation_counts_tmp[job] -= 1
+                    operation_sequence[i][j] = job
+                else:
+                    job = np.random.choice(operation_counts_tmp.index)
+                    operation_counts_tmp[job] -= 1
+                    operation_sequence[i][j] = job
+
+        # Machine assignment
+        machine_assignment = np.zeros((self.population_size, self.dimension))
+        # probability to choose the machine with the shortest processing time for the corresponding operations.
+        p_hcms = 0.8
+        # find the machine with the shortest processing time for each operation.
+        columns_to_check = list(range(self.num_machines))
+        self.table_pd['min_machine'] = self.table_pd[columns_to_check].idxmin(axis=1)
+        # array to record the next operation to be assigned in a job
+        next_operation = np.zeros(operation_counts.shape[0])
+        # the next assignment in a sequnece is choosen either by the priority rule or randomly
+        for i in range(self.population_size):
+            for j in range(self.dimension):
+                job = operation_sequence[i][j]
+                if np.random.rand() < p_hcms:
+                    # find the machine with the shortest processing time for the corresponding operations
+                    min_machine = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])]['min_machine'].values[0]
+                    machine_assignment[i][j] = min_machine
+                else:
+                    # randomly choose a machine that is not np.inf in table_pd
+                    while(True) :
+                        machine = np.random.choice(range(self.num_machines))
+                        if self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][machine].values[0] != np.inf:
+                            break
+                    machine_assignment[i][j] = machine
+                next_operation[job] += 1
+        
+        return np.hstack([operation_sequence, machine_assignment])
 
     def fitness(self):
-        None
+        fitness = np.zeros(self.population_size)
+        for i in range(self.population_size):
+            # record the total processing time of each machine
+            time_machine = [0 for _ in range(self.num_machines)]
+            # record the time of the last finished operation of each job
+            time_job = [0 for _ in range(self.num_jobs)]
+            # record the next operation to be assigned in a job
+            next_operation = np.zeros(self.num_jobs)
+            
+            for gene in range(self.dimension):
+                job = self.population[i][gene]
+                machine = self.population[i][gene + self.dimension]
+                processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][str(machine)].values[0]
+
+                if time_job[job] > time_machine[machine]:
+                    time_machine[machine] = time_job[job] + processing_time
+                    time_job[job] += processing_time
+                else:
+                    time_machine[machine] += processing_time
+                    time_job[job] = time_machine[machine]
+
+                next_operation[job] += 1
+        
+            makespan = np.max(time_machine)
+            fitness[i] = makespan
+
+        return fitness
 
     def select(self):
-        None
+        X_new = np.zeros_like(self.population)
+        tournamant_size = 3
+        for i in range(self.population_size):
+            mask = np.random.choice(self.population, size=tournamant_size, replace=True)
+            fitness_selected = self.fitness[mask]
+            candidates = self.population[mask]
+            best_idx = fitness_selected.argmin()
+            X_new[i] = candidates[best_idx]
+
+        return X_new
     
     def crossover(self):
-        None
+        for i in range(0, self.population_size, 2):
+            if np.random.rand() < self.pc:
+                # Select two parents
+                parent1 = self.population[i]
+                parent2 = self.population[i + 1]
+                # randomly split jobs into two exclusive sets
+                machine_list = list(range(self.num_jobs))
+                job_set1 = set(random.sample(machine_list, int(self.num_jobs / 2)))
+                job_set2 = set(machine_list) - job_set1
+                # Perform precedence preserving order-based crossover
+                child1 = np.zeros_like(parent1)
+                child2 = np.zeros_like(parent2)
+                # child 1
+                idx_p2 = 0
+                for j in range(self.dimension):
+                    if parent1[j] in job_set1:
+                        child1[j] = parent1[j]
+                        child1[j + self.dimension] = parent1[j + self.dimension]
+                    else:
+                        while parent2[idx_p2] in job_set1:
+                            idx_p2 += 1
+                        child1[j] = parent2[idx_p2]
+                        child1[j + self.dimension] = parent2[idx_p2 + self.dimension]
+                # child 2
+                idx_p1 = 0
+                for j in range(self.dimension):
+                    if parent2[j] in job_set2:
+                        child2[j] = parent2[j]
+                        child2[j + self.dimension] = parent2[j + self.dimension]
+                    else:
+                        while parent1[idx_p1] in job_set2:
+                            idx_p1 += 1
+                        child2[j] = parent1[idx_p1]
+                        child2[j + self.dimension] = parent1[idx_p1 + self.dimension]
+                # Update population
+                self.population[i] = child1
+                self.population[i + 1] = child2
 
     def mutate(self):
-        None
+        for i in range(self.population_size):
+            child = self.population[i].deepcopy()
+            for idx1 in range(self.dimension):
+                # swap mutation
+                if np.random.rand() <= self.pm:
+                    idx2 = np.random.choice(np.delete(np.arange(self.dimension), idx1))
+                    child[idx1], child[idx2] = self.population[idx2], self.population[idx1]
+                    child[idx1 + self.dimension], child[idx2 + self.dimension] = self.population[idx2 + self.dimension], self.population[idx1 + self.dimension]
+            # Update population
+            self.population[i] = child
