@@ -27,9 +27,6 @@ class SLGAEnv:
         self.fitness_score = None
         self.first_gen_fitness_score = None
 
-    def reset(self):
-        None
-    
     def next_state(self):
         w1 = 0.35
         w2 = 0.35
@@ -102,6 +99,8 @@ class SLGAEnv:
             # Fitness calculation
             self.fitness_score = self.fitness()
 
+        return self.best_fitness
+
     def init_population(self):
         # Operation sequence
         operation_sequence = np.zeros((self.population_size, self.dimension))
@@ -111,7 +110,7 @@ class SLGAEnv:
         p_cmo = 0.8
         # the next operation in a sequnece is choosen either by the priority rule or randomly
         for i in range(self.population_size):
-            operation_counts_tmp = operation_counts.deepcopy()
+            operation_counts_tmp = operation_counts.copy()
             for j in range(self.dimension):
                 if np.random.rand() < p_cmo:
                     job = operation_counts_tmp.idxmax()
@@ -163,7 +162,7 @@ class SLGAEnv:
             for gene in range(self.dimension):
                 job = self.population[i][gene]
                 machine = self.population[i][gene + self.dimension]
-                processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][str(machine)].values[0]
+                processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][machine].values[0]
 
                 if time_job[job] > time_machine[machine]:
                     time_machine[machine] = time_job[job] + processing_time
