@@ -45,11 +45,11 @@ def read_file(path):
     table_pd['operation'] = table_pd['operation'].astype(int)
     table_pd['O'] = table_pd['job'].astype(str) + table_pd['operation'].astype(str)
 
-    print(table_pd)
+    #print(table_pd)
     return table_pd, num_jobs, num_machines, total_operations
 
 if __name__ == "__main__":
     data, num_jobs, num_machines, total_operations = read_file("Brdata/Mk01.fjs")
-    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 10 * num_jobs * num_machines)
-    env.runner()
+    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 2 * num_jobs * num_machines, num_generations= 4 * num_jobs * num_machines)
+    print(f'Best solution fitness = {env.runner()}')
     print("Finish")

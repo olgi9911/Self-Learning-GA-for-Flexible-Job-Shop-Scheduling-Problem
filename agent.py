@@ -17,7 +17,7 @@ class Agent:
         if random.random() < self.epsilon:
            action_idx = np.argmax(self.q_table_pc[state, :])
         else:
-            action_idx = random.choice(self.num_actions) 
+            action_idx = random.randint(0, self.num_actions - 1)
 
         return action_idx
     
@@ -25,7 +25,7 @@ class Agent:
         if random.random() < self.epsilon:
            action_idx = np.argmax(self.q_table_pm[state, :])
         else:
-            action_idx = random.choice(self.num_actions) 
+            action_idx = random.randint(0, self.num_actions - 1) 
 
         return action_idx
     
