@@ -50,6 +50,6 @@ def read_file(path):
 
 if __name__ == "__main__":
     data, num_jobs, num_machines, total_operations = read_file("Brdata/Mk01.fjs")
-    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 2 * num_jobs * num_machines)
+    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 1 * num_jobs * num_machines)
     print(f'Best solution fitness = {env.runner()}')
     print("Finish")

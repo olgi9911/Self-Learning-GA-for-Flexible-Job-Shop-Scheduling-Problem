@@ -84,12 +84,15 @@ class SLGAEnv:
             self.pc = random.uniform(self.action_set_pc[action_pc][0], self.action_set_pc[action_pc][1])
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
             # Genetic operation
-            self.select()
+            elite_population = self.select()
             self.crossover()
             self.mutate()
 
             self.prev_fitness_score = self.fitness_score
             # Fitness calculation
+            self.fitness_score = self.fitness()
+
+            self.elite_retention(elite_population)
             self.fitness_score = self.fitness()
 
             current_best_fitness = min(self.fitness_score)
@@ -173,16 +176,16 @@ class SLGAEnv:
         return fitness
 
     def select(self):
-        population_new = np.zeros_like(self.population)
-        tournament_size = 3
-        for i in range(self.population_size):
-            mask = np.random.choice(self.population_size, size=tournament_size, replace=True)
-            fitness_selected = self.fitness_score[mask]
-            candidates = self.population[mask]
-            best_idx = fitness_selected.argmin()
-            population_new[i] = candidates[best_idx]
+        elite_size = int(self.population_size * 0.1)
+        elite_indices = np.argsort(self.fitness_score)[:elite_size]
+        elite_population = self.population[elite_indices]
+        
+        return elite_population
 
-        self.population = population_new
+    def elite_retention(self, elite_population):
+        elite_size = elite_population.shape[0]
+        worst_indices = np.argsort(self.fitness_score)[-elite_size:]
+        self.population[worst_indices] = elite_population
     
     def crossover(self):
         ''' Precedence preserving order-based crossover (POX) '''
