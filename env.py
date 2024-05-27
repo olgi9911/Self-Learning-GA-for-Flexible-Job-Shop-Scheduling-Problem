@@ -27,10 +27,13 @@ class SLGAEnv:
         self.fitness_score = None
         self.first_gen_fitness_score = None
 
+        self.processing_times_dict = {
+            (row['job'], row['operation']): row[:self.num_machines].to_numpy(dtype=float)
+            for _, row in self.table_pd.iterrows()
+        }
+
     def next_state(self):
-        w1 = 0.35
-        w2 = 0.35
-        w3 = 0.3
+        w1, w2, w3 = 0.35, 0.35, 0.3
 
         f = np.sum(self.fitness_score) / np.sum(self.first_gen_fitness_score)
         mean = np.mean(self.fitness_score)
@@ -161,8 +164,9 @@ class SLGAEnv:
             for gene in range(self.dimension):
                 job = self.population[i][gene]
                 machine = self.population[i][gene + self.dimension]
-                processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][machine].values[0]
-                
+                #processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][machine].values[0]
+                processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
+
                 start_time = max(time_job[job], time_machine[machine])
                 time_machine[machine] = start_time + processing_time
                 time_job[job] = time_machine[machine]
