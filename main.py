@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import argparse
 
 from env import SLGAEnv
 
@@ -49,7 +50,11 @@ def read_file(path):
     return table_pd, num_jobs, num_machines, total_operations
 
 if __name__ == "__main__":
-    data, num_jobs, num_machines, total_operations = read_file("Brdata/Mk01.fjs")
-    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 300)
+    parser = argparse.ArgumentParser(description="config")
+    parser.add_argument("--instance", type=str, default="Mk01")
+    args = parser.parse_args()
+
+    data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
+    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 5 * num_jobs * num_machines)
     print(f'Best solution fitness = {env.runner()}')
     print("Finish")

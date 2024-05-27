@@ -5,7 +5,7 @@ from agent import Agent
 from tqdm import tqdm
 
 class SLGAEnv:
-    def __init__(self, table_pd, num_jobs, num_machines, dimension, population_size, num_generations, pc = 0.7, pm = 0.001, num_states=20, num_actions=10):
+    def __init__(self, table_pd, num_jobs, num_machines, dimension, population_size, num_generations, pc = 0.7, pm = 0.03, num_states=20, num_actions=10):
         self.table_pd = table_pd
         self.num_jobs = num_jobs
         self.num_machines = num_machines
@@ -28,8 +28,15 @@ class SLGAEnv:
         self.fitness_score = None
         self.first_gen_fitness_score = None
 
+        # Pre-compute processing times for each (job, operation) pair
         self.processing_times_dict = {
             (row['job'], row['operation']): row[:self.num_machines].to_numpy(dtype=float)
+            for _, row in self.table_pd.iterrows()
+        }
+
+        # Pre-compute machine options for each (job, operation) pair
+        self.machine_options = {
+            (row['job'], row['operation']): np.where(row[:self.num_machines] != np.inf)[0]
             for _, row in self.table_pd.iterrows()
         }
 
@@ -87,6 +94,7 @@ class SLGAEnv:
             # Execute action
             self.pc = random.uniform(self.action_set_pc[action_pc][0], self.action_set_pc[action_pc][1])
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
+            print(f"pc = {self.pc}, pm = {self.pm}")
             # Genetic operation
             elite_population = self.select()
             self.crossover()
@@ -248,10 +256,11 @@ class SLGAEnv:
                     job = self.population[i][idx1]
                     operation = np.sum(self.population[i][:idx1] == job)
                     
-                    job_ops = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == operation)]
+                    '''job_ops = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == operation)]
                     values = job_ops[columns_to_check].values.flatten()
                     non_inf_indices = np.where(values != np.inf)[0]
-                    machine_new = random.choice(non_inf_indices)
+                    machine_new = random.choice(non_inf_indices)'''
+                    machine_new = random.choice(self.machine_options[(job, operation)])
 
                     self.population[i][idx1 + self.dimension] = machine_new
                     
