@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 from agent import Agent
+from tqdm import tqdm
 
 class SLGAEnv:
     def __init__(self, table_pd, num_jobs, num_machines, dimension, population_size, num_generations, pc = 0.7, pm = 0.001, num_states=20, num_actions=10):
@@ -61,12 +62,12 @@ class SLGAEnv:
         action_pc = random.randint(0, self.num_actions - 1)
         action_pm = random.randint(0, self.num_actions - 1)
 
-        for gen in range(self.num_generations):
+        for gen in tqdm(range(self.num_generations)):
             rc = (np.min(self.fitness_score) - np.min(self.prev_fitness_score)) / np.min(self.prev_fitness_score)
             rm = (np.sum(self.fitness_score) - np.sum(self.prev_fitness_score)) / np.sum(self.prev_fitness_score)
 
             next_state = self.next_state()
-
+            
             if gen < (self.num_states * self.num_actions) / 2:
                 # SARSA
                 next_action_pc = self.agent.select_action_pc(state)
@@ -101,7 +102,7 @@ class SLGAEnv:
             current_best_fitness = min(self.fitness_score)
             if current_best_fitness < self.best_fitness:
                 self.best_fitness = current_best_fitness
-            print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
+            #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
         return self.best_fitness
 
@@ -168,8 +169,9 @@ class SLGAEnv:
                 processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
 
                 start_time = max(time_job[job], time_machine[machine])
-                time_machine[machine] = start_time + processing_time
-                time_job[job] = time_machine[machine]
+                end_time = start_time + processing_time
+                time_machine[machine] = end_time
+                time_job[job] = end_time
 
                 next_operation[job] += 1
 

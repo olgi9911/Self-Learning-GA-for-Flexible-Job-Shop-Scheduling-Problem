@@ -15,7 +15,7 @@ class Agent:
 
     def select_action_pc(self, state):
         if random.random() < self.epsilon:
-           action_idx = np.argmax(self.q_table_pc[state, :])
+           action_idx = np.argmax(self.q_table_pc[state])
         else:
             action_idx = random.randint(0, self.num_actions - 1)
 
@@ -23,20 +23,30 @@ class Agent:
     
     def select_action_pm(self, state):
         if random.random() < self.epsilon:
-           action_idx = np.argmax(self.q_table_pm[state, :])
+           action_idx = np.argmax(self.q_table_pm[state])
         else:
             action_idx = random.randint(0, self.num_actions - 1) 
 
         return action_idx
     
     def learn_pc(self, state, action, reward, next_state, next_action, is_SARSA=True):
+        current_q = self.q_table_pc[state, action]
         if is_SARSA:
-            self.q_table_pc[state, action] = (1 - self.learning_rate) * self.q_table_pc[state, action] + self.learning_rate * (reward + self.gamma * self.q_table_pc[next_state, next_action])
+            #self.q_table_pc[state, action] = (1 - self.learning_rate) * self.q_table_pc[state, action] + self.learning_rate * (reward + self.gamma * self.q_table_pc[next_state, next_action])
+            next_q = self.q_table_pc[next_state, next_action]
+            self.q_table_pc[state, action] = current_q + self.learning_rate * (reward + self.gamma * next_q - current_q)
         else:
-            self.q_table_pc[state, action] = (1 - self.learning_rate) * self.q_table_pc[state, action] + self.learning_rate * (reward + self.gamma * max(self.q_table_pc[next_state]))
+            #self.q_table_pc[state, action] = (1 - self.learning_rate) * self.q_table_pc[state, action] + self.learning_rate * (reward + self.gamma * max(self.q_table_pc[next_state]))
+            next_q = max(self.q_table_pc[next_state])
+            self.q_table_pc[state, action] = current_q + self.learning_rate * (reward + self.gamma * next_q - current_q)
 
     def learn_pm(self, state, action, reward, next_state, next_action, is_SARSA=True):
+        current_q = self.q_table_pm[state, action]
         if is_SARSA:
-            self.q_table_pm[state, action] = (1 - self.learning_rate) * self.q_table_pm[state, action] + self.learning_rate * (reward + self.gamma * self.q_table_pm[next_state, next_action])
+            #self.q_table_pm[state, action] = (1 - self.learning_rate) * self.q_table_pm[state, action] + self.learning_rate * (reward + self.gamma * self.q_table_pm[next_state, next_action])
+            next_q = self.q_table_pm[next_state, next_action]
+            self.q_table_pm[state, action] = current_q + self.learning_rate * (reward + self.gamma * next_q - current_q)
         else:
-            self.q_table_pm[state, action] = (1 - self.learning_rate) * self.q_table_pm[state, action] + self.learning_rate * (reward + self.gamma * max(self.q_table_pm[next_state]))
+            #self.q_table_pm[state, action] = (1 - self.learning_rate) * self.q_table_pm[state, action] + self.learning_rate * (reward + self.gamma * max(self.q_table_pm[next_state]))
+            next_q = max(self.q_table_pm[next_state])
+            self.q_table_pm[state, action] = current_q + self.learning_rate * (reward + self.gamma * next_q - current_q)
