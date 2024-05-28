@@ -307,9 +307,34 @@ class SLGAEnv:
         # create additional colors since default colors of Plotly are limited to 10 different colors
         r = lambda : np.random.randint(0,255)
         # create a dictionary with colors for each job
+        predefined_colors = [
+            (255, 179, 0),
+            (128, 62, 117),
+            (255, 104, 0),
+            (166, 189, 215),
+            (193, 0, 32),
+            (206, 162, 98),
+            (129, 112, 102),
+            (0, 125, 52),
+            (246, 118, 142),
+            (0, 83, 138),
+            (255, 122, 92),
+            (83, 55, 122),
+            (255, 142, 0),
+            (179, 40, 81),
+            (244, 200, 0),
+            (127, 24, 13),
+            (147, 170, 0),
+            (89, 51, 21),
+            (241, 58, 19),
+            (35, 44, 22)
+        ]
         colors = {}
         for i in range(self.num_jobs):
-            colors[f'Job {i}'] = f'rgb({r()}, {r()}, {r()})'
+            if i < 20:
+                colors[f'Job {i}'] = f'rgb{predefined_colors[i]}'
+            else:
+                colors[f'Job {i}'] = f'rgb({r()}, {r()}, {r()})'
         # assign colors to each operation
         for key, value in job_record.items():
             job = key[0]
