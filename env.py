@@ -27,7 +27,7 @@ class SLGAEnv:
         self.population = None
         self.fitness_score = None
         self.first_gen_fitness_score = None
-
+        
         # Pre-compute processing times for each (job, operation) pair
         self.processing_times_dict = {
             (row['job'], row['operation']): row[:self.num_machines].to_numpy(dtype=float)
@@ -39,6 +39,7 @@ class SLGAEnv:
             (row['job'], row['operation']): np.where(row[:self.num_machines] != np.inf)[0]
             for _, row in self.table_pd.iterrows()
         }
+        print("Job-operation table pre-computation finished.")
 
     def next_state(self):
         w1, w2, w3 = 0.35, 0.35, 0.3
@@ -60,16 +61,18 @@ class SLGAEnv:
         self.agent = Agent(num_states=20, num_actions=10, epsilon=0.85, learning_rate=0.75, gamma=0.2)
 
         self.population = self.init_population()
+        print("Population initialization finished.")
         self.fitness_score = self.fitness()
         self.first_gen_fitness_score = self.fitness_score.copy()
         self.best_fitness = np.min(self.fitness_score)
         self.prev_fitness_score = self.fitness_score
-        
+        best_fitness_generation = 1
+
         state = random.randint(0, self.num_states - 1)
         action_pc = random.randint(0, self.num_actions - 1)
         action_pm = random.randint(0, self.num_actions - 1)
 
-        for gen in tqdm(range(self.num_generations)):
+        for gen in tqdm(range(self.num_generations), desc="Calculating"):
             rc = (np.min(self.fitness_score) - np.min(self.prev_fitness_score)) / np.min(self.prev_fitness_score)
             rm = (np.sum(self.fitness_score) - np.sum(self.prev_fitness_score)) / np.sum(self.prev_fitness_score)
 
@@ -94,7 +97,7 @@ class SLGAEnv:
             # Execute action
             self.pc = random.uniform(self.action_set_pc[action_pc][0], self.action_set_pc[action_pc][1])
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
-            print(f"pc = {self.pc}, pm = {self.pm}")
+            #print(f"pc = {self.pc}, pm = {self.pm}")
             # Genetic operation
             elite_population = self.select()
             self.crossover()
@@ -110,9 +113,10 @@ class SLGAEnv:
             current_best_fitness = min(self.fitness_score)
             if current_best_fitness < self.best_fitness:
                 self.best_fitness = current_best_fitness
+                best_fitness_generation = gen + 1
             #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
-        return self.best_fitness
+        return self.best_fitness, best_fitness_generation
 
     def init_population(self):
         operation_sequence = np.zeros((self.population_size, self.dimension), dtype=int)

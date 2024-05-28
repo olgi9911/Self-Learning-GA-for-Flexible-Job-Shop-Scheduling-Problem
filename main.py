@@ -56,5 +56,5 @@ if __name__ == "__main__":
 
     data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
     env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 5 * num_jobs * num_machines)
-    print(f'Best solution fitness = {env.runner()}')
-    print("Finish")
+    solution = env.runner()
+    print(f'The best solution fitness = {solution[0]}, achieved in generation {solution[1]}.')
