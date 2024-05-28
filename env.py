@@ -27,6 +27,7 @@ class SLGAEnv:
         self.population = None
         self.fitness_score = None
         self.first_gen_fitness_score = None
+        self.best_individual= None
         
         # Pre-compute processing times for each (job, operation) pair
         self.processing_times_dict = {
@@ -113,9 +114,11 @@ class SLGAEnv:
             current_best_fitness = min(self.fitness_score)
             if current_best_fitness < self.best_fitness:
                 self.best_fitness = current_best_fitness
+                self.best_individual = self.population[np.argmin(self.fitness_score)].copy()
                 best_fitness_generation = gen + 1
             #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
+        self.draw_gantt()
         return self.best_fitness, best_fitness_generation
 
     def init_population(self):
@@ -267,4 +270,53 @@ class SLGAEnv:
                     machine_new = random.choice(self.machine_options[(job, operation)])
 
                     self.population[i][idx1 + self.dimension] = machine_new
+
+    def draw_gantt(self):
+        import plotly.figure_factory as ff
+        from plotly.offline import plot
+        import datetime
+
+        time_machine = [0 for _ in range(self.num_machines)] # Record the total processing time of each machine
+        time_job = [0 for _ in range(self.num_jobs)] # Record the time of the last finished operation of each job
+        next_operation = np.zeros(self.num_jobs, dtype=int) # Record the next operation to be assigned in a job
+        # job_record is dictionary with (job, operation, machine) as key and [start_time, end_time] as value
+        job_record = {}
+        
+        for i in range(self.dimension):
+            job = self.best_individual[i]
+            machine = self.best_individual[i + self.dimension]
+            processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
+
+            start_time = max(time_job[job], time_machine[machine])
+            end_time = start_time + processing_time
+            time_machine[machine] = end_time
+            time_job[job] = end_time
+
+            start_time = str(datetime.timedelta(seconds = start_time))
+            end_time = str(datetime.timedelta(seconds = end_time))
+            job_record[(job, next_operation[job], machine)] = [start_time, end_time]
+            next_operation[job] += 1
+
+        df = []
+        for key, value in job_record.items():
+            job = key[0]
+            operation = key[1]
+            machine = key[2]
+            df.append(dict(Task='Machine %s'%(machine), Start='2024-01-01 %s'%(str(value[0])), Finish='2024-01-01 %s'%(str(value[1])),Resource='Job %s, Operation %s'%(job, operation)))
+          
+        # create additional colors since default colors of Plotly are limited to 10 different colors
+        r = lambda : np.random.randint(0,255)
+        # create a dictionary with colors for each job
+        colors = {}
+        for i in range(self.num_jobs):
+            colors[f'Job {i}'] = f'rgb({r()}, {r()}, {r()})'
+        # assign colors to each operation
+        for key, value in job_record.items():
+            job = key[0]
+            operation = key[1]
+            machine = key[2]
+            colors[f'Job {job}, Operation {operation}'] = colors[f'Job {job}']
+
+        fig = ff.create_gantt(df, colors=colors, index_col='Resource', show_colorbar=True, group_tasks=True, showgrid_x=True, title='flexible job shop Schedule')
+        plot(fig, filename='flexible_job_shop_scheduling.html')
                     
