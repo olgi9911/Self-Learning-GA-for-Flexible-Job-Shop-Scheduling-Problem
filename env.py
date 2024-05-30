@@ -54,7 +54,7 @@ class SLGAEnv:
         s = w1 * f + w2 * d + w3 * m
         #print(f's = {s}')
         state_idx = min(int(s / 0.05), self.num_states - 1) # Handle the edge case
-
+        #print(f'State {state_idx}')
         return state_idx
 
     def runner(self):
@@ -149,6 +149,8 @@ class SLGAEnv:
         # Find the machine with the shortest processing time for each operation.
         columns_to_check = list(range(self.num_machines))
         self.table_pd['min_machine'] = self.table_pd[columns_to_check].idxmin(axis=1)
+        # Create a lookup dictionary for quick access
+        job_operation_min_machine = self.table_pd.set_index(['job', 'operation'])['min_machine'].to_dict()
 
         # The next assignment in a sequence is chosen either by the priority rule or randomly
         for i in range(self.population_size):
@@ -157,17 +159,14 @@ class SLGAEnv:
                 job = operation_sequence[i][j]
                 if np.random.rand() < p_hcms:
                     # Find the machine with the shortest processing time for the corresponding operations
-                    min_machine = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])]['min_machine'].values[0]
+                    min_machine = job_operation_min_machine[(job, next_operation[job])]
                 else:
                     # Randomly choose a machine that is not np.inf in table_pd
-                    values = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][columns_to_check].values.flatten()
-                    non_inf_indices = [idx for idx, val in enumerate(values) if val != np.inf]
-                    min_machine = random.choice(non_inf_indices)
+                    min_machine = random.choice(self.machine_options[(job, next_operation[job])])
                     
                 machine_assignment[i][j] = min_machine
                 next_operation[job] += 1
         
-        #print('Population initialization finished')
         return np.hstack([operation_sequence, machine_assignment])
 
     def fitness(self):
@@ -180,7 +179,6 @@ class SLGAEnv:
             for gene in range(self.dimension):
                 job = self.population[i][gene]
                 machine = self.population[i][gene + self.dimension]
-                #processing_time = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == next_operation[job])][machine].values[0]
                 processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
 
                 start_time = max(time_job[job], time_machine[machine])
@@ -262,11 +260,6 @@ class SLGAEnv:
                 if np.random.rand() <= self.pm:
                     job = self.population[i][idx1]
                     operation = np.sum(self.population[i][:idx1] == job)
-                    
-                    '''job_ops = self.table_pd[(self.table_pd['job'] == job) & (self.table_pd['operation'] == operation)]
-                    values = job_ops[columns_to_check].values.flatten()
-                    non_inf_indices = np.where(values != np.inf)[0]
-                    machine_new = random.choice(non_inf_indices)'''
                     machine_new = random.choice(self.machine_options[(job, operation)])
 
                     self.population[i][idx1 + self.dimension] = machine_new
