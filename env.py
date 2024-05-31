@@ -100,7 +100,8 @@ class SLGAEnv:
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
             #print(f"pc = {self.pc}, pm = {self.pm}")
             # Genetic operation
-            elite_population = self.select()
+            #elite_population = self.select_elite()
+            self.select()
             self.crossover()
             self.mutate()
 
@@ -108,8 +109,8 @@ class SLGAEnv:
             # Fitness calculation
             self.fitness_score = self.fitness()
 
-            self.elite_retention(elite_population)
-            self.fitness_score = self.fitness()
+            #self.elite_retention(elite_population)
+            #self.fitness_score = self.fitness()
 
             current_best_fitness = min(self.fitness_score)
             if current_best_fitness < self.best_fitness:
@@ -118,7 +119,7 @@ class SLGAEnv:
                 best_fitness_generation = gen + 1
             #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
-        self.draw_gantt()
+        #self.draw_gantt()
         return self.best_fitness, best_fitness_generation
 
     def init_population(self):
@@ -195,7 +196,19 @@ class SLGAEnv:
         return fitness
 
     def select(self):
-        elite_size = int(self.population_size * 0.1)
+        population_new = np.zeros_like(self.population)
+        tournament_size = 3
+        for i in range(self.population_size):
+            mask = np.random.choice(self.population_size, size=tournament_size, replace=True)
+            fitness_selected = self.fitness_score[mask]
+            candidates = self.population[mask]
+            best_idx = fitness_selected.argmin()
+            population_new[i] = candidates[best_idx]
+
+        self.population = population_new
+
+    def select_elite(self):
+        elite_size = int(self.population_size * 0.05)
         elite_indices = np.argsort(self.fitness_score)[:elite_size]
         elite_population = self.population[elite_indices]
         
