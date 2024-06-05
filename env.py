@@ -104,15 +104,11 @@ class SLGAEnv:
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
             #print(f"pc = {self.pc}, pm = {self.pm}")
             # Genetic operation
-            elite_population = self.select()
+            self.select()
             self.crossover()
             self.mutate()
 
             self.prev_fitness_score = self.fitness_score
-            # Fitness calculation
-            self.fitness_score = self.fitness()
-
-            self.elite_retention(elite_population)
             self.fitness_score = self.fitness()
 
             current_best_fitness = min(self.fitness_score)
@@ -128,7 +124,7 @@ class SLGAEnv:
     def init_population(self):
         operation_sequence = np.zeros((self.population_size, self.dimension), dtype=int)
         operation_counts = self.table_pd['job'].value_counts() # Count the number of identical elements in the column 'job'
-        p_cmo = 0. # Probability to Choose the job that has the greatest number of operations remaining
+        p_cmo = 0.8 # Probability to Choose the job that has the greatest number of operations remaining
 
         # The next operation in a sequence is chosen either by the priority rule or randomly
         for i in range(self.population_size):
@@ -148,7 +144,7 @@ class SLGAEnv:
                     operation_sequence[i][j] = job
 
         machine_assignment = np.zeros((self.population_size, self.dimension), dtype=int)
-        p_hcms = 0. # Probability to choose the machine with the shortest processing time for the corresponding operations
+        p_hcms = 0.8 # Probability to choose the machine with the shortest processing time for the corresponding operations
 
         # Find the machine with the shortest processing time for each operation.
         columns_to_check = list(range(self.num_machines))
@@ -208,13 +204,25 @@ class SLGAEnv:
 
         #print(fitness)
         return fitness
-
+    
     def select(self):
+        population_new = np.zeros_like(self.population)
+        tournament_size = 3
+        for i in range(self.population_size):
+            mask = np.random.choice(self.population_size, size=tournament_size, replace=True)
+            fitness_selected = self.fitness_score[mask]
+            candidates = self.population[mask]
+            best_idx = fitness_selected.argmin()
+            population_new[i] = candidates[best_idx]
+
+        self.population = population_new
+
+    '''def select(self):
         elite_size = int(self.population_size * 0.1)
         elite_indices = np.argsort(self.fitness_score)[:elite_size]
         elite_population = self.population[elite_indices]
         
-        return elite_population
+        return elite_population'''
 
     def elite_retention(self, elite_population):
         elite_size = elite_population.shape[0]
