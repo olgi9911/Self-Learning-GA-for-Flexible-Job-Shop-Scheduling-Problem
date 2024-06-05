@@ -27,7 +27,11 @@ class SLGAEnv:
         self.population = None
         self.fitness_score = None
         self.first_gen_fitness_score = None
-        self.best_individual= None
+        self.best_individual = None
+
+        self.job_operation_min_machine = None
+        self.job_operation_count = None
+        self.job_operation_offset = None
         
         # Pre-compute processing times for each (job, operation) pair
         self.processing_times_dict = {
@@ -100,17 +104,12 @@ class SLGAEnv:
             self.pm = random.uniform(self.action_set_pm[action_pm][0], self.action_set_pm[action_pm][1])
             #print(f"pc = {self.pc}, pm = {self.pm}")
             # Genetic operation
-            #elite_population = self.select_elite()
             self.select()
             self.crossover()
             self.mutate()
 
             self.prev_fitness_score = self.fitness_score
-            # Fitness calculation
             self.fitness_score = self.fitness()
-
-            #self.elite_retention(elite_population)
-            #self.fitness_score = self.fitness()
 
             current_best_fitness = min(self.fitness_score)
             if current_best_fitness < self.best_fitness:
@@ -151,22 +150,33 @@ class SLGAEnv:
         columns_to_check = list(range(self.num_machines))
         self.table_pd['min_machine'] = self.table_pd[columns_to_check].idxmin(axis=1)
         # Create a lookup dictionary for quick access
-        job_operation_min_machine = self.table_pd.set_index(['job', 'operation'])['min_machine'].to_dict()
+        self.job_operation_min_machine = self.table_pd.set_index(['job', 'operation'])['min_machine'].to_dict()
+        # record the number of operations of each job
+        self.job_operation_count = np.array(self.table_pd.groupby('job')['operation'].count())
+        # operation offset
+        self.job_operation_offset = np.zeros(self.num_jobs, dtype=int)
+        for i in range(self.num_jobs):
+            if i == 0:
+                continue
+            self.job_operation_offset[i] = self.job_operation_offset[i-1] + self.job_operation_count[i-1]
 
         # The next assignment in a sequence is chosen either by the priority rule or randomly
         for i in range(self.population_size):
-            next_operation = np.zeros(self.num_jobs, dtype=int) # Array to record the next operation to be assigned in a job
+            cur_job = 0
+            cur_op = 0
             for j in range(self.dimension):
-                job = operation_sequence[i][j]
+                if cur_op == self.job_operation_count[cur_job]:
+                    cur_job += 1
+                    cur_op = 0 
                 if np.random.rand() < p_hcms:
                     # Find the machine with the shortest processing time for the corresponding operations
-                    min_machine = job_operation_min_machine[(job, next_operation[job])]
+                    min_machine = self.job_operation_min_machine[(cur_job, cur_op)]
                 else:
                     # Randomly choose a machine that is not np.inf in table_pd
-                    min_machine = random.choice(self.machine_options[(job, next_operation[job])])
+                    min_machine = random.choice(self.machine_options[(cur_job, cur_op)])
                     
                 machine_assignment[i][j] = min_machine
-                next_operation[job] += 1
+                cur_op += 1
         
         return np.hstack([operation_sequence, machine_assignment])
 
@@ -179,7 +189,7 @@ class SLGAEnv:
             
             for gene in range(self.dimension):
                 job = self.population[i][gene]
-                machine = self.population[i][gene + self.dimension]
+                machine = self.population[i][self.dimension + self.job_operation_offset[job] + next_operation[job]]
                 processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
 
                 start_time = max(time_job[job], time_machine[machine])
@@ -194,7 +204,7 @@ class SLGAEnv:
 
         #print(fitness)
         return fitness
-
+    
     def select(self):
         population_new = np.zeros_like(self.population)
         tournament_size = 3
@@ -207,12 +217,13 @@ class SLGAEnv:
 
         self.population = population_new
 
-    def select_elite(self):
+
+    '''def select_elite(self):
         elite_size = int(self.population_size * 0.05)
         elite_indices = np.argsort(self.fitness_score)[:elite_size]
         elite_population = self.population[elite_indices]
         
-        return elite_population
+        return elite_population'''
 
     def elite_retention(self, elite_population):
         elite_size = elite_population.shape[0]
@@ -225,6 +236,7 @@ class SLGAEnv:
 
         for i in range(0, self.population_size, 2):
             if np.random.rand() < self.pc:
+                '''Pox crossover'''
                 # Select two parents
                 parent1 = self.population[i]
                 parent2 = self.population[i + 1]
@@ -235,49 +247,92 @@ class SLGAEnv:
 
                 # Perform precedence preserving order-based crossover
                 child1 = np.zeros_like(parent1)
+                child1[self.dimension:] = parent1[self.dimension:]
                 child2 = np.zeros_like(parent2)
+                child2[self.dimension:] = parent2[self.dimension:]
                 # Child 1
                 idx_p2 = 0
                 for j in range(self.dimension):
                     if parent1[j] in job_set1:
                         child1[j] = parent1[j]
-                        child1[j + self.dimension] = parent1[j + self.dimension]
                     else:
                         while parent2[idx_p2] in job_set1:
                             idx_p2 += 1
                         child1[j] = parent2[idx_p2]
-                        child1[j + self.dimension] = parent2[idx_p2 + self.dimension]
                         idx_p2 += 1
                 # Child 2
                 idx_p1 = 0
                 for j in range(self.dimension):
                     if parent2[j] in job_set2:
                         child2[j] = parent2[j]
-                        child2[j + self.dimension] = parent2[j + self.dimension]
                     else:
                         while parent1[idx_p1] in job_set2:
                             idx_p1 += 1
                         child2[j] = parent1[idx_p1]
-                        child2[j + self.dimension] = parent1[idx_p1 + self.dimension]
                         idx_p1 += 1
                     
                 # Update population
-                self.population[i] = child1
-                self.population[i + 1] = child2
+                self.population[i] = child1.copy()
+                self.population[i + 1] = child2.copy()
+
+                '''2PX crossover'''
+                # Select two parents
+                parent1 = self.population[i]
+                parent2 = self.population[i + 1]
+
+                if np.random.rand() < 0.5:
+                    # Perform 2-point crossover
+                    point1, point2 = sorted(random.sample(range(1, self.dimension), 2))
+
+                    child1 = np.zeros_like(parent1)
+                    child1[:self.dimension+point1] = parent1[:self.dimension+point1]
+                    child1[self.dimension+point1:self.dimension+point2] = parent2[self.dimension+point1:self.dimension+point2]
+                    child1[self.dimension+point2:] = parent1[self.dimension+point2:]
+
+                    child2 = np.zeros_like(parent2)
+                    child2[:self.dimension+point1] = parent2[:self.dimension+point1]
+                    child2[self.dimension+point1:self.dimension+point2] = parent1[self.dimension+point1:self.dimension+point2]
+                    child2[self.dimension+point2:] = parent2[self.dimension+point2:]
+                else:
+                    # perform uniform crossover
+                    child1 = np.zeros_like(parent1)
+                    child2 = np.zeros_like(parent2)
+                    child1[:self.dimension] = parent1[:self.dimension]
+                    child2[:self.dimension] = parent2[:self.dimension]
+                    for j in range(self.dimension):
+                        if np.random.rand() < 0.5:
+                            child1[j+self.dimension] = parent1[j+self.dimension]
+                            child2[j+self.dimension] = parent2[j+self.dimension]
+                        else:
+                            child1[j+self.dimension] = parent2[j+self.dimension]
+                            child2[j+self.dimension] = parent1[j+self.dimension]
+
+                # Update population
+                self.population[i] = child1.copy()
+                self.population[i + 1] = child2.copy()
 
     def mutate(self):
         ''' Swap mutation '''
         columns_to_check = list(range(self.num_machines))
         for i in range(self.population_size):
+            cur_job = 0
+            cur_op = 0
             for idx1 in range(self.dimension):
+                if cur_op == self.job_operation_count[cur_job]:
+                        cur_job += 1
+                        cur_op = 0
+                # Mutation for operation sequence(Swap)
                 if np.random.rand() <= self.pm:
-                    job = self.population[i][idx1]
-                    operation = np.sum(self.population[i][:idx1] == job)
-                    machine_new = random.choice(self.machine_options[(job, operation)])
-
+                    # os
+                    idx2 = np.random.randint(self.dimension)
+                    self.population[i][idx1], self.population[i][idx2] = self.population[i][idx2], self.population[i][idx1]
+                    # ma
+                    machine_new = self.job_operation_min_machine[(cur_job, cur_op)]
                     self.population[i][idx1 + self.dimension] = machine_new
+                cur_op += 1
 
     def draw_gantt(self):
+        return
         import plotly.figure_factory as ff
         from plotly.offline import plot
         import datetime
