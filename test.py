@@ -49,12 +49,20 @@ def read_file(path):
     #print(table_pd)
     return table_pd, num_jobs, num_machines, total_operations
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="config")
-    parser.add_argument("--instance", type=str, default="Mk01")
-    args = parser.parse_args()
 
-    data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
-    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 300)
-    solution = env.runner()
-    print(f'The best solution fitness = {int(solution[0])}, achieved in generation {solution[1]}.')
+parser = argparse.ArgumentParser(description="config")
+parser.add_argument("--instance", type=str, default="Mk01")
+parser.add_argument("--output", type=str, required=True)
+parser.add_argument("--runs", type=int, default=1)
+args = parser.parse_args()
+
+num_runs = args.runs
+solutions = np.zeros((num_runs, 2))
+
+data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
+for i in range(num_runs):
+    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 5 * num_jobs * num_machines)
+    solutions[i] = env.runner()
+
+table = pd.DataFrame(solutions, columns=['Best', 'Generation'])
+table.to_csv(f"{args.output}.csv")

@@ -118,7 +118,7 @@ class SLGAEnv:
                 best_fitness_generation = gen + 1
             #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
-        self.draw_gantt()
+        #self.draw_gantt()
         return self.best_fitness, best_fitness_generation
 
     def init_population(self):
@@ -217,8 +217,9 @@ class SLGAEnv:
 
         self.population = population_new
 
-    '''def select(self):
-        elite_size = int(self.population_size * 0.1)
+
+    '''def select_elite(self):
+        elite_size = int(self.population_size * 0.05)
         elite_indices = np.argsort(self.fitness_score)[:elite_size]
         elite_population = self.population[elite_indices]
         

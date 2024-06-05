@@ -1,0 +1,10 @@
+python3 test.py --instance Mk01 --runs 15 --output Mk01_15times
+python3 test.py --instance Mk02 --runs 15 --output Mk02_15times
+python3 test.py --instance Mk03 --runs 15 --output Mk03_15times
+python3 test.py --instance Mk04 --runs 15 --output Mk04_15times
+python3 test.py --instance Mk05 --runs 15 --output Mk05_15times
+python3 test.py --instance Mk06 --runs 15 --output Mk06_15times
+python3 test.py --instance Mk07 --runs 15 --output Mk07_15times
+python3 test.py --instance Mk08 --runs 15 --output Mk08_15times
+python3 test.py --instance Mk09 --runs 15 --output Mk09_15times
+python3 test.py --instance Mk10 --runs 15 --output Mk10_15times
