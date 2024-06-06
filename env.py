@@ -118,7 +118,7 @@ class SLGAEnv:
                 best_fitness_generation = gen + 1
             #print(f"{gen + 1 : >3}: Best fitness = {self.best_fitness}")
 
-        #self.draw_gantt()
+        self.draw_gantt()
         return self.best_fitness, best_fitness_generation
 
     def init_population(self):
@@ -207,7 +207,7 @@ class SLGAEnv:
     
     def select(self):
         population_new = np.zeros_like(self.population)
-        tournament_size = 3
+        tournament_size = 3 
         for i in range(self.population_size):
             mask = np.random.choice(self.population_size, size=tournament_size, replace=True)
             fitness_selected = self.fitness_score[mask]
@@ -322,17 +322,17 @@ class SLGAEnv:
                         cur_job += 1
                         cur_op = 0
                 # Mutation for operation sequence(Swap)
-                if np.random.rand() <= self.pm:
+                if np.random.rand() <= self.pm/20:
                     # os
                     idx2 = np.random.randint(self.dimension)
                     self.population[i][idx1], self.population[i][idx2] = self.population[i][idx2], self.population[i][idx1]
                     # ma
-                    machine_new = self.job_operation_min_machine[(cur_job, cur_op)]
+                    #machine_new = self.job_operation_min_machine[(cur_job, cur_op)]
+                    machine_new = random.choice(self.machine_options[(cur_job, cur_op)])
                     self.population[i][idx1 + self.dimension] = machine_new
                 cur_op += 1
 
     def draw_gantt(self):
-        return
         import plotly.figure_factory as ff
         from plotly.offline import plot
         import datetime
@@ -345,7 +345,8 @@ class SLGAEnv:
         
         for i in range(self.dimension):
             job = self.best_individual[i]
-            machine = self.best_individual[i + self.dimension]
+            #machine = self.best_individual[i + self.dimension]
+            machine = self.best_individual[self.dimension + self.job_operation_offset[job] + next_operation[job]]
             processing_time = self.processing_times_dict[(job, next_operation[job])][machine]
 
             start_time = max(time_job[job], time_machine[machine])
