@@ -61,7 +61,7 @@ solutions = np.zeros((num_runs, 2))
 
 data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
 for i in range(num_runs):
-    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 5 * num_jobs * num_machines)
+    env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 300)
     solutions[i] = env.runner()
 
 table = pd.DataFrame(solutions, columns=['Best', 'Generation'])
