@@ -1,7 +1,7 @@
 # Self-Learning GA for Flexible Job-Shop Scheduling Problem 
 This is the implementation of the paper [A self-learning genetic algorithm based on reinforcement learning for flexible job-shop scheduling problem](https://www.sciencedirect.com/science/article/abs/pii/S0360835220304885).
 
-We modified the chromosome representation, crossover operator, and mutation operator.
+We redesigned the chromosome representation, crossover operator, and mutation operator.
 
 ## How to use
 - `BRdata` contains ten Brandimarte’s benchmark instances.
