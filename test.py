@@ -59,7 +59,7 @@ args = parser.parse_args()
 num_runs = args.runs
 solutions = np.zeros((num_runs, 2))
 
-data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
+data, num_jobs, num_machines, total_operations = read_file(f"BRdata/{args.instance}.fjs")
 for i in range(num_runs):
     env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 300)
     solutions[i] = env.runner()

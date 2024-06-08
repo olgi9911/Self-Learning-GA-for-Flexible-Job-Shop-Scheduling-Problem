@@ -54,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--instance", type=str, default="Mk01")
     args = parser.parse_args()
 
-    data, num_jobs, num_machines, total_operations = read_file(f"Brdata/{args.instance}.fjs")
+    data, num_jobs, num_machines, total_operations = read_file(f"BRdata/{args.instance}.fjs")
     env = SLGAEnv(data, num_jobs, num_machines, dimension=total_operations, population_size= 5 * num_jobs * num_machines, num_generations= 300)
     solution = env.runner()
     print(f'The best solution fitness = {int(solution[0])}, achieved in generation {solution[1]}.')
