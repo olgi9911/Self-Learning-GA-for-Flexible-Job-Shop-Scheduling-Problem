@@ -1,5 +1,5 @@
 # Self-Learning GA for Flexible Job-Shop Scheduling Problem 
-This is the implementation of the paper [A self-learning genetic algorithm based on reinforcement learning for flexible job-shop scheduling problem](https://www.sciencedirect.com/science/article/abs/pii/S0360835220304885).
+This is an implementation of the paper [A self-learning genetic algorithm based on reinforcement learning for flexible job-shop scheduling problem](https://www.sciencedirect.com/science/article/abs/pii/S0360835220304885).
 
 We redesigned the chromosome representation, crossover operator, and mutation operator.
 
@@ -8,7 +8,7 @@ We redesigned the chromosome representation, crossover operator, and mutation op
 - `main.py` is the entry point of the project.
 - `env.py` is the FJSP environment containing GA and RL implementation.
 
-One can run the following command to generate result of a instance (e.g. Mk01):
+One can run the following command to generate solution of a instance (e.g. Mk01):
 ```console
 python3 main.py --instance Mk01
 ```
